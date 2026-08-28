@@ -45,8 +45,11 @@ INSTALLED_APPS = [
     # 3rd-party
     "allauth",
     "allauth.account",
-    "allauth.mfa",
     "allauth.headless",
+    'allauth.socialaccount',
+    'allauth.mfa',
+    'allauth.usersessions',
+    'allauth.socialaccount.providers.google',
     # Local
     "apps.users",
 ]
@@ -60,6 +63,8 @@ MIDDLEWARE = [
     "allauth.account.middleware.AccountMiddleware",
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # Add the account middleware:
+    "allauth.account.middleware.AccountMiddleware",
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -74,9 +79,32 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                # `allauth` needs this from django
+                'django.template.context_processors.request',
             ],
         },
     },
+]
+
+AUTHENTICATION_BACKENDS = [
+    # Needed to login by username in Django admin, regardless of `allauth`
+    'django.contrib.auth.backends.ModelBackend',
+
+    # `allauth` specific authentication methods, such as login by email
+    'allauth.account.auth_backends.AuthenticationBackend',
+]
+
+AUTH_USER_MODEL = "users.User"
+
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+ACCOUNT_EMAIL_VERIFICATION = "none"
+LOGIN_REDIRECT_URL = "/accounts/"
+LOGOUT_REDIRECT_URL = "/accounts/"
+ACCOUNT_LOGIN_METHODS = {"email"}
+ACCOUNT_SIGNUP_FIELDS = [
+    "email*",
+    "password1*",
+    "password2*",
 ]
 
 WSGI_APPLICATION = 'config.wsgi.application'
@@ -115,17 +143,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-# Authentication
-
-AUTH_USER_MODEL = "users.User"
-
-ACCOUNT_USER_MODEL_USERNAME_FIELD = None
-ACCOUNT_LOGIN_METHODS = {"email"}
-ACCOUNT_SIGNUP_FIELDS = [
-    "email*",
-    "password1*",
-    "password2*",
-]
 
 # Internationalization
 # https://docs.djangoproject.com/en/6.1/topics/i18n/
