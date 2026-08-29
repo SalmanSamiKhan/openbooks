@@ -189,3 +189,26 @@ Cookie: sessionid=YOUR_SESSION_ID
 ###
 
 ### Do not mix browser and app client endpoints.
+
+### ============================================================
+
+### User Profile
+
+### ============================================================
+
+### Get current user
+GET http://127.0.0.1:8000/api/users/me/
+Cookie: sessionid={{sessionid}}
+
+### Update current user
+PATCH http://127.0.0.1:8000/api/users/me/
+Content-Type: application/json
+Cookie: sessionid={{sessionid}}
+X-CSRFToken: {{csrftoken}}
+
+{}
+
+### Delete current user
+DELETE http://127.0.0.1:8000/api/users/me/
+Cookie: sessionid={{sessionid}}
+X-CSRFToken: {{csrftoken}}
