@@ -215,9 +215,7 @@ def test_session_is_unauthenticated(client):
 # Ensures a verified user can log in through the headless API.
 @pytest.mark.django_db
 def test_headless_login(client, verified_user):
-    csrf_token = client.get(
-        f"{BASE_URL}/auth/session"
-    ).cookies["csrftoken"].value
+    csrf_token = client.get(f"{BASE_URL}/auth/session").cookies["csrftoken"].value
 
     response = client.post(
         f"{BASE_URL}/auth/login",
@@ -241,9 +239,7 @@ def test_headless_login(client, verified_user):
 # Ensures login fails with an incorrect password.
 @pytest.mark.django_db
 def test_headless_login_wrong_password(client, verified_user):
-    csrf_token = client.get(
-        f"{BASE_URL}/auth/session"
-    ).cookies["csrftoken"].value
+    csrf_token = client.get(f"{BASE_URL}/auth/session").cookies["csrftoken"].value
 
     response = client.post(
         f"{BASE_URL}/auth/login",
@@ -270,9 +266,7 @@ def test_headless_login_requires_email_verification(client):
         password="test-password-123",
     )
 
-    csrf_token = client.get(
-        f"{BASE_URL}/auth/session"
-    ).cookies["csrftoken"].value
+    csrf_token = client.get(f"{BASE_URL}/auth/session").cookies["csrftoken"].value
 
     response = client.post(
         f"{BASE_URL}/auth/login",
@@ -294,9 +288,7 @@ def test_headless_login_requires_email_verification(client):
 # Ensures an authenticated session returns the logged-in user.
 @pytest.mark.django_db
 def test_headless_authenticated_session(client, verified_user):
-    csrf_token = client.get(
-        f"{BASE_URL}/auth/session"
-    ).cookies["csrftoken"].value
+    csrf_token = client.get(f"{BASE_URL}/auth/session").cookies["csrftoken"].value
 
     response = client.post(
         f"{BASE_URL}/auth/login",
@@ -323,9 +315,7 @@ def test_headless_authenticated_session(client, verified_user):
 # Ensures logout ends the authenticated session.
 @pytest.mark.django_db
 def test_headless_logout(client, verified_user):
-    csrf_token = client.get(
-        f"{BASE_URL}/auth/session"
-    ).cookies["csrftoken"].value
+    csrf_token = client.get(f"{BASE_URL}/auth/session").cookies["csrftoken"].value
 
     response = client.post(
         f"{BASE_URL}/auth/login",
@@ -346,12 +336,11 @@ def test_headless_logout(client, verified_user):
 
     assert response.status_code == 401
 
+
 # Ensures signup creates a new user.
 @pytest.mark.django_db
 def test_headless_signup(client):
-    csrf_token = client.get(
-        f"{BASE_URL}/auth/session"
-    ).cookies["csrftoken"].value
+    csrf_token = client.get(f"{BASE_URL}/auth/session").cookies["csrftoken"].value
 
     response = client.post(
         f"{BASE_URL}/auth/signup",
@@ -378,9 +367,7 @@ def test_headless_signup_duplicate_email(client):
         password="existing-password",
     )
 
-    csrf_token = client.get(
-        f"{BASE_URL}/auth/session"
-    ).cookies["csrftoken"].value
+    csrf_token = client.get(f"{BASE_URL}/auth/session").cookies["csrftoken"].value
 
     response = client.post(
         f"{BASE_URL}/auth/signup",
@@ -428,3 +415,93 @@ def test_headless_password_reset_unknown_email(client):
 
     assert response.status_code == 200
     assert len(mail.outbox) == 1
+
+
+# Ensures an authenticated user can retrieve their profile.
+@pytest.mark.django_db
+def test_get_me(client, verified_user):
+    client.force_login(verified_user)
+
+    response = client.get("/api/users/me/")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "id": verified_user.id,
+        "email": verified_user.email,
+    }
+
+
+# Ensures unauthenticated users cannot retrieve a profile.
+@pytest.mark.django_db
+def test_get_me_requires_authentication(client):
+    response = client.get("/api/users/me/")
+
+    assert response.status_code == 403
+
+
+# Ensures an authenticated user can call the profile update endpoint.
+@pytest.mark.django_db
+def test_patch_me(client, verified_user):
+    client.force_login(verified_user)
+
+    response = client.patch(
+        "/api/users/me/",
+        data={},
+        content_type="application/json",
+    )
+
+    assert response.status_code == 200
+    assert response.json()["email"] == verified_user.email
+
+
+# Ensures profile updates require authentication.
+@pytest.mark.django_db
+def test_patch_me_requires_authentication(client):
+    response = client.patch(
+        "/api/users/me/",
+        data={},
+        content_type="application/json",
+    )
+
+    assert response.status_code == 403
+
+
+# Ensures the login email cannot be changed through the profile endpoint.
+@pytest.mark.django_db
+def test_patch_me_cannot_change_email(client, verified_user):
+    client.force_login(verified_user)
+
+    response = client.patch(
+        "/api/users/me/",
+        data={"email": "new@example.com"},
+        content_type="application/json",
+    )
+
+    assert response.status_code == 200
+    assert response.json()["email"] == verified_user.email
+
+    verified_user.refresh_from_db()
+
+    assert verified_user.email == "user@example.com"
+
+
+# Ensures an authenticated user can deactivate their account.
+@pytest.mark.django_db
+def test_delete_me(client, verified_user):
+    client.force_login(verified_user)
+
+    response = client.delete("/api/users/me/")
+
+    assert response.status_code == 204
+
+    verified_user.refresh_from_db()
+
+    assert verified_user.is_active is False
+
+
+# Ensures account deletion requires authentication.
+@pytest.mark.django_db
+def test_delete_me_requires_authentication(client):
+    response = client.delete("/api/users/me/")
+
+    assert response.status_code == 403
