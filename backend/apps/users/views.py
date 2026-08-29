@@ -26,8 +26,20 @@ class MeView(APIView):
 
         return Response(serializer.data)
 
-    # Deactivates the current user's account.
+    # Deactivates the current user's account after confirmation.
     def delete(self, request):
+        if request.user.is_superuser:
+            return Response(
+                {"detail": "Superusers cannot deactivate their own account."},
+                status=403,
+            )
+
+        if request.data.get("confirm") is not True:
+            return Response(
+                {"detail": "Set confirm to true to deactivate your account."},
+                status=400,
+            )
+
         request.user.is_active = False
         request.user.save(update_fields=["is_active"])
 

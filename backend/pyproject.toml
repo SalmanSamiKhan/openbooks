@@ -8,6 +8,7 @@ dependencies = [
     "django>=6.1",
     "django-allauth[headless,socialaccount]>=65.19.1",
     "djangorestframework>=3.18.0",
+    "drf-spectacular>=0.30.0",
     "fido2>=2.2.1",
     "pillow>=12.3.0",
     "psycopg[binary]>=3.3.4",
