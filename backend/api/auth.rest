@@ -1,35 +1,191 @@
-### Get current session
-GET http://127.0.0.1:8000/api/auth/browser/v1/auth/session
+### ============================================================
 
-### Signup
-POST http://127.0.0.1:8000/api/auth/browser/v1/auth/signup
-Content-Type: application/json
-Cookie: csrftoken=CSRF_TOKEN
-X-CSRFToken: CSRF_TOKEN
+### ALLAUTH HEADLESS — BROWSER CLIENT
 
-{
-  "email": "user@example.com",
-  "password": "PASSWORD"
-}
+### ============================================================
 
-### Login
-POST http://127.0.0.1:8000/api/auth/browser/v1/auth/login
-Content-Type: application/json
-Cookie: csrftoken=CSRF_TOKEN
-X-CSRFToken: CSRF_TOKEN
+### Base URL
 
-{
-  "email": "user@example.com",
-  "password": "PASSWORD"
-}
-
-### Check authenticated session
-GET http://127.0.0.1:8000/api/auth/browser/v1/auth/session
-Cookie: csrftoken=CSRF_TOKEN; sessionid=SESSION_ID
+### http://127.0.0.1:8000/api/auth/browser/v1
 
 ###
 
+### Before POST/PUT/DELETE requests:
+
+### - obtain a CSRF cookie
+
+### - send Cookie + X-CSRFToken
+
+###
+
+### Replace placeholders with local values.
+
+### Never commit real passwords, session IDs, or CSRF tokens.
+
+### ============================================================
+
+### CONFIG
+
+### ============================================================
+
+### Get public allauth configuration
+
+GET http://127.0.0.1:8000/api/auth/browser/v1/config
+
+### ============================================================
+
+### SESSION / AUTHENTICATION
+
+### ============================================================
+
+### Get current session
+
+GET http://127.0.0.1:8000/api/auth/browser/v1/auth/session
+
+### Login
+
+POST http://127.0.0.1:8000/api/auth/browser/v1/auth/login
+Content-Type: application/json
+Cookie: csrftoken=YOUR_CSRF_TOKEN
+X-CSRFToken: YOUR_CSRF_TOKEN
+
+{
+"email": "[admin@mail.com](mailto:admin@mail.com)",
+"password": "YOUR_PASSWORD"
+}
+
 ### Logout
+
 DELETE http://127.0.0.1:8000/api/auth/browser/v1/auth/session
-Cookie: csrftoken=CSRF_TOKEN; sessionid=SESSION_ID
-X-CSRFToken: CSRF_TOKEN
+Cookie: csrftoken=YOUR_CSRF_TOKEN; sessionid=YOUR_SESSION_ID
+X-CSRFToken: YOUR_CSRF_TOKEN
+
+### ============================================================
+
+### SIGNUP
+
+### ============================================================
+
+### Signup
+
+POST http://127.0.0.1:8000/api/auth/browser/v1/auth/signup
+Content-Type: application/json
+Cookie: csrftoken=YOUR_CSRF_TOKEN
+X-CSRFToken: YOUR_CSRF_TOKEN
+
+{
+"email": "[newuser@example.com](mailto:newuser@example.com)",
+"password": "YOUR_TEST_PASSWORD"
+}
+
+### ============================================================
+
+### PASSWORD RESET
+
+### ============================================================
+
+### Request password reset
+
+POST http://127.0.0.1:8000/api/auth/browser/v1/auth/password/request
+Content-Type: application/json
+Cookie: csrftoken=YOUR_CSRF_TOKEN
+X-CSRFToken: YOUR_CSRF_TOKEN
+
+{
+"email": "[admin@mail.com](mailto:admin@mail.com)"
+}
+
+### Reset password using the key from the email
+
+POST http://127.0.0.1:8000/api/auth/browser/v1/auth/password/reset
+Content-Type: application/json
+Cookie: csrftoken=YOUR_CSRF_TOKEN
+X-CSRFToken: YOUR_CSRF_TOKEN
+
+{
+"key": "PASSWORD_RESET_KEY",
+"password": "YOUR_NEW_PASSWORD"
+}
+
+### ============================================================
+
+### ACCOUNT EMAIL
+
+### ============================================================
+
+### List email addresses
+
+GET http://127.0.0.1:8000/api/auth/browser/v1/account/email
+Cookie: sessionid=YOUR_SESSION_ID
+
+### Add an email address
+
+POST http://127.0.0.1:8000/api/auth/browser/v1/account/email
+Content-Type: application/json
+Cookie: csrftoken=YOUR_CSRF_TOKEN; sessionid=YOUR_SESSION_ID
+X-CSRFToken: YOUR_CSRF_TOKEN
+
+{
+"email": "[secondary@example.com](mailto:secondary@example.com)"
+}
+
+### ============================================================
+
+### PASSWORD
+
+### ============================================================
+
+### Change password
+
+POST http://127.0.0.1:8000/api/auth/browser/v1/account/password/change
+Content-Type: application/json
+Cookie: csrftoken=YOUR_CSRF_TOKEN; sessionid=YOUR_SESSION_ID
+X-CSRFToken: YOUR_CSRF_TOKEN
+
+{
+"current_password": "YOUR_CURRENT_PASSWORD",
+"new_password": "YOUR_NEW_PASSWORD"
+}
+
+### ============================================================
+
+### THIRD-PARTY PROVIDERS
+
+### ============================================================
+
+### List connected providers
+
+GET http://127.0.0.1:8000/api/auth/browser/v1/account/providers
+Cookie: sessionid=YOUR_SESSION_ID
+
+### ============================================================
+
+### MFA
+
+### ============================================================
+
+### MFA endpoints are available because allauth.mfa is installed.
+
+### We will test these separately after the basic account flows.
+
+### ============================================================
+
+### NOTES
+
+### ============================================================
+
+### Browser client:
+
+### - uses Django session cookies
+
+### - uses CSRF protection
+
+###
+
+### App client:
+
+### - uses X-Session-Token instead of browser cookies
+
+###
+
+### Do not mix browser and app client endpoints.
