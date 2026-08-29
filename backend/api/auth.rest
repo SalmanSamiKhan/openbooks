@@ -212,3 +212,17 @@ X-CSRFToken: {{csrftoken}}
 DELETE http://127.0.0.1:8000/api/users/me/
 Cookie: sessionid={{sessionid}}
 X-CSRFToken: {{csrftoken}}
+
+
+### Upload avatar
+PATCH http://127.0.0.1:8000/api/users/me/
+Cookie: sessionid={{sessionid}}
+X-CSRFToken: {{csrftoken}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="avatar"; filename="avatar.jpg"
+Content-Type: image/jpeg
+
+< ./avatar.jpg
+--WebAppBoundary--

@@ -2,6 +2,9 @@ import pytest
 from allauth.account.models import EmailAddress
 from django.contrib.auth import authenticate, get_user_model
 from django.core import mail
+from io import BytesIO
+from PIL import Image
+from rest_framework.test import APIClient
 
 User = get_user_model()
 
@@ -417,20 +420,6 @@ def test_headless_password_reset_unknown_email(client):
     assert len(mail.outbox) == 1
 
 
-# Ensures an authenticated user can retrieve their profile.
-@pytest.mark.django_db
-def test_get_me(client, verified_user):
-    client.force_login(verified_user)
-
-    response = client.get("/api/users/me/")
-
-    assert response.status_code == 200
-    assert response.json() == {
-        "id": verified_user.id,
-        "email": verified_user.email,
-    }
-
-
 # Ensures unauthenticated users cannot retrieve a profile.
 @pytest.mark.django_db
 def test_get_me_requires_authentication(client):
@@ -503,5 +492,182 @@ def test_delete_me(client, verified_user):
 @pytest.mark.django_db
 def test_delete_me_requires_authentication(client):
     response = client.delete("/api/users/me/")
+
+    assert response.status_code == 403
+
+
+# Ensures the complete profile is returned.
+@pytest.mark.django_db
+def test_get_me_returns_profile(client, verified_user):
+    client.force_login(verified_user)
+
+    response = client.get("/api/users/me/")
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["id"] == verified_user.id
+    assert data["email"] == verified_user.email
+    assert data["first_name"] == verified_user.first_name
+    assert data["last_name"] == verified_user.last_name
+    assert data["bio"] == verified_user.bio
+    assert "date_joined" in data
+
+
+# Ensures profile fields can be updated.
+@pytest.mark.django_db
+def test_patch_me_updates_profile(client, verified_user):
+    client.force_login(verified_user)
+
+    response = client.patch(
+        "/api/users/me/",
+        data={
+            "first_name": "John",
+            "last_name": "Doe",
+            "bio": "Book lover",
+        },
+        content_type="application/json",
+    )
+
+    assert response.status_code == 200
+
+    verified_user.refresh_from_db()
+
+    assert verified_user.first_name == "John"
+    assert verified_user.last_name == "Doe"
+    assert verified_user.bio == "Book lover"
+
+
+# Ensures PATCH does not replace unspecified fields.
+@pytest.mark.django_db
+def test_patch_me_is_partial(client, verified_user):
+    verified_user.first_name = "Existing"
+    verified_user.last_name = "Name"
+    verified_user.save()
+
+    client.force_login(verified_user)
+
+    response = client.patch(
+        "/api/users/me/",
+        data={"bio": "New bio"},
+        content_type="application/json",
+    )
+
+    assert response.status_code == 200
+
+    verified_user.refresh_from_db()
+
+    assert verified_user.first_name == "Existing"
+    assert verified_user.last_name == "Name"
+    assert verified_user.bio == "New bio"
+
+
+# Ensures account identity fields cannot be changed here.
+@pytest.mark.django_db
+def test_patch_me_protected_fields(client, verified_user):
+    client.force_login(verified_user)
+
+    response = client.patch(
+        "/api/users/me/",
+        data={
+            "email": "new@example.com",
+            "date_joined": "2020-01-01T00:00:00Z",
+        },
+        content_type="application/json",
+    )
+
+    assert response.status_code == 200
+
+    verified_user.refresh_from_db()
+
+    assert verified_user.email == "user@example.com"
+
+
+def make_test_image():
+    image = Image.new("RGB", (100, 100))
+    image_file = BytesIO()
+    image.save(image_file, format="JPEG")
+    image_file.seek(0)
+    image_file.name = "avatar.jpg"
+    return image_file
+
+
+@pytest.mark.django_db
+def test_patch_me_uploads_avatar(verified_user):
+    client = APIClient()
+    client.force_authenticate(user=verified_user)
+
+    response = client.patch(
+        "/api/users/me/",
+        {"avatar": make_test_image()},
+        format="multipart",
+    )
+
+    assert response.status_code == 200
+
+    verified_user.refresh_from_db()
+
+    assert verified_user.avatar
+    assert verified_user.avatar.name.startswith("avatars/")
+
+
+@pytest.mark.django_db
+def test_patch_me_replaces_avatar(verified_user):
+    client = APIClient()
+    client.force_authenticate(user=verified_user)
+
+    response = client.patch(
+        "/api/users/me/",
+        {"avatar": make_test_image()},
+        format="multipart",
+    )
+
+    assert response.status_code == 200
+
+    verified_user.refresh_from_db()
+    first_avatar = verified_user.avatar.name
+
+    response = client.patch(
+        "/api/users/me/",
+        {"avatar": make_test_image()},
+        format="multipart",
+    )
+
+    assert response.status_code == 200
+
+    verified_user.refresh_from_db()
+
+    assert verified_user.avatar
+    assert verified_user.avatar.name != first_avatar
+
+
+@pytest.mark.django_db
+def test_patch_me_rejects_invalid_avatar(verified_user):
+    client = APIClient()
+    client.force_authenticate(user=verified_user)
+
+    invalid_file = BytesIO(b"this is not an image")
+    invalid_file.name = "avatar.txt"
+
+    response = client.patch(
+        "/api/users/me/",
+        {"avatar": invalid_file},
+        format="multipart",
+    )
+
+    assert response.status_code == 400
+    assert "avatar" in response.json()
+
+
+@pytest.mark.django_db
+def test_patch_me_avatar_requires_authentication():
+    client = APIClient()
+
+    response = client.patch(
+        "/api/users/me/",
+        {"avatar": make_test_image()},
+        format="multipart",
+    )
 
     assert response.status_code == 403

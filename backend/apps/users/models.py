@@ -20,6 +20,8 @@ class UserManager(BaseUserManager):
 class User(AbstractUser):
     username = None
     email = models.EmailField(unique=True)
+    bio = models.TextField(blank=True, default="")
+    avatar = models.ImageField(upload_to="avatars/", blank=True, null=True)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
